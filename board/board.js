@@ -48,6 +48,7 @@ const undone = new Map();        // stroke event id -> Set of pubkeys that undid
 const live = new Map();          // pubkey:sid -> {c, w, p, t}
 let current = null;              // my in-progress stroke
 let clearedAt = 0;          // newest honored clear event time
+let clearEvent = null;      // that event, re-sent to relays that lack it
 let dirty = true;
 
 // ---- Validation ----------------------------------------------------------
@@ -64,7 +65,7 @@ function validStroke(s) {
 }
 
 // ---- Event handling ------------------------------------------------------
-function addEvent(ev) {
+function addEvent(ev, src) {
   if (!ev || seen.has(ev.id)) return;
   if (!Array.isArray(ev.tags) || !ev.tags.some((t) => t[0] === "t" && t[1] === BOARD)) return;
   if (typeof ev.content !== "string" || ev.content.length > 20000) return;
@@ -88,7 +89,11 @@ function addEvent(ev) {
     if (ev.tags.some((t) => t[0] === "clear")) {
       if (ev.created_at > clearedAt) {
         clearedAt = ev.created_at;
+        clearEvent = ev;
         live.clear();
+        try { localStorage.setItem("board-clear", JSON.stringify(ev)); } catch (e) {}
+        // Repair relays that missed it: forward to every other open relay.
+        if (src) sendToRelays(ev, src);
       }
     } else if (undoTag) {
       if (typeof undoTag[1] !== "string") return;
@@ -155,11 +160,16 @@ function updateStatus() {
   const open = sockets.filter((ws) => ws.readyState === WebSocket.OPEN).length;
   statusEl.textContent = open + "/" + RELAYS.length + " relays connected";
 }
+function sendToRelays(ev, except) {
+  const payload = JSON.stringify(["EVENT", ev]);
+  sockets.forEach((ws) => ws !== except && ws.readyState === WebSocket.OPEN && ws.send(payload));
+}
 function connect(url) {
   const ws = new WebSocket(url);
   sockets.push(ws);
   ws.onopen = () => {
     updateStatus();
+    if (clearEvent) ws.send(JSON.stringify(["EVENT", clearEvent]));
     ws.send(JSON.stringify(["REQ", "board", {
       kinds: [KIND_STROKE, KIND_LIVE],
       "#t": [BOARD],
@@ -170,7 +180,7 @@ function connect(url) {
   ws.onmessage = (m) => {
     try {
       const data = JSON.parse(m.data);
-      if (data[0] === "EVENT" && data[1] === "board") addEvent(data[2]);
+      if (data[0] === "EVENT" && data[1] === "board") addEvent(data[2], ws);
     } catch (e) {}
   };
   ws.onclose = () => {
@@ -180,6 +190,11 @@ function connect(url) {
   };
   ws.onerror = () => ws.close();
 }
+// Restore the newest clear from a previous visit (it is re-verified).
+try {
+  const saved = localStorage.getItem("board-clear");
+  if (saved) addEvent(JSON.parse(saved));
+} catch (e) {}
 RELAYS.forEach(connect);
 
 function publish(kind, tags, content) {
