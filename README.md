@@ -11,6 +11,6 @@ I'll put something here soon.
 
 
 <div>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+  <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
   <script type="text/javascript" src="/script.js"></script>
 </div>
