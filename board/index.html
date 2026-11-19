@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shared whiteboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0 auto; padding: 16px; max-width: 1000px; }
+    #bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 8px 0; }
+    #bar label { display: flex; align-items: center; gap: 6px; }
+    #status { margin-left: auto; color: #666; font-size: 0.9em; }
+    canvas { width: 100%; height: auto; aspect-ratio: 1000 / 600; background: #fff;
+             border: 1px solid #ccc; touch-action: none; cursor: crosshair; display: block; }
+  </style>
+</head>
+<body>
+  <p><a href="/">&larr; martango.github.io</a></p>
+  <h1>Shared whiteboard</h1>
+  <div id="bar">
+    <label>Color <input id="color" type="color" value="#000000"></label>
+    <label>Size <input id="width" type="range" min="1" max="30" value="4"></label>
+    <button id="undo" type="button">Undo my last stroke</button>
+    <span id="status"></span>
+  </div>
+  <canvas id="board" width="1000" height="600"></canvas>
+  <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+  <script src="/board/board.js"></script>
+</body>
+</html>

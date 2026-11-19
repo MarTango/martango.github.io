@@ -2,6 +2,8 @@
 
 I'll put something here soon.
 
+[Shared whiteboard](/board/)
+
 <ul>
 </ul>
 
